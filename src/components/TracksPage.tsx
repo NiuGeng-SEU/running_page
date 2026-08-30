@@ -5,6 +5,7 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import type { Activity } from '../types';
 import {
+  formatActivityName,
   getAvailableYears,
   formatDistance,
   parseMovingTime,
@@ -69,7 +70,7 @@ function TrackThumb({
     <div
       className={`group relative cursor-pointer rounded transition-all ${selected ? 'ring-2 ring-[var(--color-accent)] ring-offset-1 ring-offset-[var(--color-bg)]' : ''}`}
       onClick={onClick}
-      title={`${activity.name} — ${(activity.distance / 1000).toFixed(1)} km`}
+      title={`${formatActivityName(activity.name, activity.type)} — ${(activity.distance / 1000).toFixed(1)} km`}
     >
       <svg
         width={size}
@@ -488,7 +489,10 @@ export function TracksPage({
                 </button>
               </div>
               <p className="mb-0.5 truncate text-xs font-semibold">
-                {selectedActivity.name}
+                {formatActivityName(
+                  selectedActivity.name,
+                  selectedActivity.type
+                )}
               </p>
               <p className="mb-2 text-[10px] text-[var(--color-muted)]">
                 {new Date(selectedActivity.start_date_local).toLocaleDateString(

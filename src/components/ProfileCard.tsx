@@ -1,9 +1,11 @@
 import type { Activity, SportFilter } from '../types';
 import { useLocale } from '../hooks/useLocale';
 import {
+  extractCountry,
+  extractUSState,
+  formatActivityName,
   formatDistance,
   parseMovingTime,
-  extractProvince,
 } from '../hooks/useActivities';
 import { AVATAR } from '../config';
 
@@ -32,30 +34,13 @@ export function ProfileCard({ activities, filter = 'all' }: ProfileCardProps) {
   const yearsActive =
     allDates.length > 0 ? Math.max(...allDates) - Math.min(...allDates) + 1 : 0;
 
-  // Countries and provinces — use shared extractProvince for consistency with ChinaMap
   const countries = new Set<string>();
-  const provinces = new Set<string>();
-  for (const a of activities) {
-    const loc = a.location_country;
-    if (!loc || loc === 'None') continue;
-    // Detect country
-    if (loc.startsWith('{')) {
-      try {
-        const d = JSON.parse(loc.replace(/'/g, '"').replace(/None/g, 'null'));
-        if (d.country) countries.add(d.country);
-      } catch {
-        /* ignore */
-      }
-    } else if (loc.includes('泰国')) {
-      countries.add('泰国');
-    } else if (loc.includes('日本')) {
-      countries.add('日本');
-    } else {
-      countries.add('中国');
-    }
-    // Province — use shared logic (China-only)
-    const p = extractProvince(loc);
-    if (p) provinces.add(p);
+  const states = new Set<string>();
+  for (const activity of activities) {
+    const country = extractCountry(activity.location_country);
+    const state = extractUSState(activity.location_country);
+    if (country) countries.add(country);
+    if (state) states.add(state);
   }
 
   const formatHours = (secs: number) => `${(secs / 3600).toFixed(1)}h`;
@@ -150,7 +135,7 @@ export function ProfileCard({ activities, filter = 'all' }: ProfileCardProps) {
                 d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
               />
             </svg>
-            {provinces.size} {t('provinces')}
+            {states.size} {t('states')}
           </p>
         </div>
       </div>
@@ -224,7 +209,7 @@ export function ProfileCard({ activities, filter = 'all' }: ProfileCardProps) {
           </p>
           <p className="text-sm font-medium">
             {latest.type === 'Run' ? '🏃 ' : '🚴 '}
-            {latest.name || (latest.type === 'Run' ? 'Run' : 'Ride')}
+            {formatActivityName(latest.name, latest.type)}
             <span className="font-normal text-[var(--color-muted)]">
               {' '}
               · {formatDistance(latest.distance)} km ·{' '}
