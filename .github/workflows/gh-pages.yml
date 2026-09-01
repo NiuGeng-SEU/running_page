@@ -22,6 +22,9 @@ on:
         required: true
         type: string
         default: track_data
+    secrets:
+      MAPBOX_TOKEN:
+        required: true
 
 # Allow one concurrent deployment
 concurrency:
@@ -93,6 +96,14 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install
+      - name: Verify Mapbox token
+        env:
+          VITE_MAPBOX_TOKEN: ${{ secrets.MAPBOX_TOKEN }}
+        run: |
+          if [ -z "$VITE_MAPBOX_TOKEN" ]; then
+            echo "MAPBOX_TOKEN is missing; refusing to deploy a site with a broken map."
+            exit 1
+          fi
       - name: Build
         env:
           REPO_NAME: ${{ github.event.repository.name }}
