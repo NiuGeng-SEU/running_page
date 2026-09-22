@@ -8,11 +8,7 @@ Running Page 3.0 引入了可插拔的主题架构。你可以切换内置主题
 
 ```typescript
 // src/App.tsx
-const themes: Record<string, React.LazyExoticComponent<React.ComponentType>> = {
-  dashboard: lazy(() => import('./themes/dashboard')),
-  classic: lazy(() => import('./themes/classic')),
-  // 在此添加自定义主题
-}
+const Dashboard = lazy(() => import('./themes/dashboard'));
 ```
 
 构建时，`config.yml` 中的 `theme_preset` 决定加载哪个主题。所有主题共享核心层 (`src/core/`)——类型、i18n 翻译、活动数据钩子和语言工具。
@@ -39,12 +35,6 @@ Dashboard 主题是为跑者设计的现代化单页布局，提供丰富的小�
 - 热力图和轨迹墙支持导出为 PNG 图片
 - 响应式两栏网格布局
 
-### Classic
-
-Classic 主题保留了原始的多页面布局，每个视图有独立路由。使用 `react-router-dom` 导航和 `react-map-gl` 地图。如果你更喜欢原始风格，或从 v2.x 升级，推荐选择此主题。
-
-> **注意：** 如果你从 v2.x 升级，可在 `config.yml` 中设置 `theme_preset: classic`。
-
 ## 创建自定义主题
 
 1. 在 `src/themes/<your-theme>/` 下创建新目录，例如 `src/themes/minimal/`
@@ -68,11 +58,8 @@ export default function Minimal() {
 4. 在 `src/App.tsx` 中注册你的主题：
 
 ```typescript
-const themes = {
-  dashboard: lazy(() => import('./themes/dashboard')),
-  classic: lazy(() => import('./themes/classic')),
-  minimal: lazy(() => import('./themes/minimal')), // 添加这行
-}
+// 在 src/App.tsx 中引入你的主题
+const MyTheme = lazy(() => import('./themes/my-theme'));
 ```
 
 5. 在 `config.yml` 中设置 `theme_preset: minimal`

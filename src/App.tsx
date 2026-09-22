@@ -1,22 +1,8 @@
-import {
-  lazy,
-  type LazyExoticComponent,
-  type ComponentType,
-  Suspense,
-} from 'react';
+import { Suspense, lazy } from 'react';
 import { LocaleProvider } from './hooks/useLocale';
-import { THEME_PRESET } from './config';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
-// 主题注册表 — 新增主题时在此处注册，并在 src/themes/ 下创建对应文件夹
-const themes: Record<string, LazyExoticComponent<ComponentType>> = {
-  dashboard: lazy(() => import('./themes/dashboard')),
-  classic: lazy(() => import('./themes/classic')),
-  // 在此处添加自定义主题，例如：
-  // 'my-theme': lazy(() => import('./themes/my-theme')),
-};
-
-const ThemeComponent = themes[THEME_PRESET] ?? themes['dashboard'];
+const Dashboard = lazy(() => import('./themes/dashboard'));
 
 export default function App() {
   return (
@@ -39,7 +25,7 @@ export default function App() {
             </div>
           }
         >
-          <ThemeComponent />
+          <Dashboard />
         </Suspense>
       </ErrorBoundary>
     </LocaleProvider>
