@@ -4,7 +4,10 @@ version = "3.0.0"
 description = "Geng Niu's Personal Running Dashboard"
 authors = [{ name = "Geng Niu" }]
 dependencies = [
+  "requests",
   "httpx",
+  "pytz",
+  "colour>=0.1.5",
   "gpxpy==1.6.2",
   "appdirs>=1.4.0",
   "s2sphere",
