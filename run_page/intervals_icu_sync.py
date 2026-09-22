@@ -198,9 +198,7 @@ def run():
         if activity.get("name"):
             activity_title_dict[numeric_id] = activity["name"]
         if activity.get("start_date_local"):
-            activity_start_date_local_dict[numeric_id] = activity[
-                "start_date_local"
-            ]
+            activity_start_date_local_dict[numeric_id] = activity["start_date_local"]
 
     downloaded_count = 0
     used_file_types = set()

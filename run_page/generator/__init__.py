@@ -286,8 +286,7 @@ class Generator:
                         db_activity.summary_polyline = poly
                     if (
                         a.get("start_date_local")
-                        and db_activity.start_date_local
-                        != a["start_date_local"]
+                        and db_activity.start_date_local != a["start_date_local"]
                     ):
                         db_activity.start_date_local = a["start_date_local"]
         self.session.commit()
@@ -413,9 +412,7 @@ class Generator:
                 f"with route from nearest outdoor activity"
             )
         if fixed_tz_count > 0:
-            print(
-                f"\n  Corrected {fixed_tz_count} indoor activities local timezone"
-            )
+            print(f"\n  Corrected {fixed_tz_count} indoor activities local timezone")
             activity_list = Generator._recompute_streaks(activity_list)
 
         return activity_list

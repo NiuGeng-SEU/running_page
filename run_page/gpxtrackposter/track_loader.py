@@ -38,9 +38,7 @@ def _apply_start_date_local(t, local_str):
         print(f"Error applying start_date_local: {e}")
 
 
-def load_gpx_file(
-    file_name, activity_title_dict={}, activity_start_date_local_dict={}
-):
+def load_gpx_file(file_name, activity_title_dict={}, activity_start_date_local_dict={}):
     """Load an individual GPX file as a track by using Track.load_gpx()"""
     t = Track()
     t.load_gpx(file_name)
@@ -52,9 +50,7 @@ def load_gpx_file(
     return t
 
 
-def load_tcx_file(
-    file_name, activity_title_dict={}, activity_start_date_local_dict={}
-):
+def load_tcx_file(file_name, activity_title_dict={}, activity_start_date_local_dict={}):
     """Load an individual TCX file as a track by using Track.load_tcx()"""
     t = Track()
     t.load_tcx(file_name)
@@ -66,9 +62,7 @@ def load_tcx_file(
     return t
 
 
-def load_fit_file(
-    file_name, activity_title_dict={}, activity_start_date_local_dict={}
-):
+def load_fit_file(file_name, activity_title_dict={}, activity_start_date_local_dict={}):
     """Load an individual FIT file as a track by using Track.load_fit()"""
     t = Track()
     t.load_fit(file_name)
