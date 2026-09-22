@@ -112,14 +112,20 @@ export function StatsCards({
       ? monthSeconds - lastMonthSeconds
       : monthDistance - lastMonthDistance;
 
-  // Current week stats — week starts on Monday
-  const dayOfWeek = now.getDay(); // 0=Sun
-  const daysSinceMon = (dayOfWeek + 6) % 7; // Mon=0 … Sun=6
-  const weekStart = new Date(now.getTime() - daysSinceMon * 86400000);
+  // Current week stats — week starts on Sunday (Sunday to Saturday)
+  const dayOfWeek = now.getDay(); // 0=Sun … 6=Sat
+  const daysSinceSun = dayOfWeek; // Sun=0 … Sat=6
+  const weekStart = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() - daysSinceSun
+  );
   weekStart.setHours(0, 0, 0, 0);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 7);
   const weekActivities = allActivities.filter((a) => {
     const d = new Date(a.start_date_local);
-    if (d < weekStart) return false;
+    if (d < weekStart || d >= weekEnd) return false;
     if (filter !== 'all' && a.type !== filter) return false;
     return true;
   });
@@ -130,9 +136,11 @@ export function StatsCards({
     0
   );
 
-  // Last week same period comparison
-  const lastWeekStart = new Date(weekStart.getTime() - 7 * 86400000);
-  const lastWeekSamePoint = new Date(now.getTime() - 7 * 86400000);
+  // Last week same period comparison (Sunday to same point last week)
+  const lastWeekStart = new Date(weekStart);
+  lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+  const lastWeekSamePoint = new Date(now);
+  lastWeekSamePoint.setDate(lastWeekSamePoint.getDate() - 7);
   const lastWeekActivities = allActivities.filter((a) => {
     const d = new Date(a.start_date_local);
     if (d < lastWeekStart || d > lastWeekSamePoint) return false;
@@ -183,55 +191,37 @@ export function StatsCards({
     }
   }
 
-  // Week streak (consecutive weeks with activity) using simple week number
-  function getWeekNumber(d: Date): number {
-    const start = new Date(d.getFullYear(), 0, 1);
-    return Math.floor(
-      ((d.getTime() - start.getTime()) / 86400000 + start.getDay()) / 7
+  // Week streak (consecutive weeks with activity, Sunday to Saturday)
+  function getWeekKey(d: Date): string {
+    const sun = new Date(
+      d.getFullYear(),
+      d.getMonth(),
+      d.getDate() - d.getDay()
     );
+    return toLocalDateStr(sun);
   }
 
   const weekSet = new Set(
-    activities.map((a) => {
-      const d = new Date(a.start_date_local);
-      return `${d.getFullYear()}-${getWeekNumber(d)}`;
-    })
+    activities.map((a) => getWeekKey(new Date(a.start_date_local)))
   );
 
   let currentWeekStreak = 0;
   {
-    let d = new Date(now);
-    // Check current week first
-    const currKey = `${d.getFullYear()}-${getWeekNumber(d)}`;
-    if (weekSet.has(currKey)) {
-      // Count backwards from current week
-      const seen = new Set<string>();
-      while (true) {
-        const key = `${d.getFullYear()}-${getWeekNumber(d)}`;
-        if (weekSet.has(key) && !seen.has(key)) {
-          seen.add(key);
-          currentWeekStreak++;
-          d = new Date(d.getTime() - 7 * 86400000);
-        } else {
-          break;
-        }
-      }
-    } else {
-      // Try last week
-      d = new Date(now.getTime() - 7 * 86400000);
-      if (weekSet.has(`${d.getFullYear()}-${getWeekNumber(d)}`)) {
-        const seen = new Set<string>();
-        while (true) {
-          const key = `${d.getFullYear()}-${getWeekNumber(d)}`;
-          if (weekSet.has(key) && !seen.has(key)) {
-            seen.add(key);
-            currentWeekStreak++;
-            d = new Date(d.getTime() - 7 * 86400000);
-          } else {
-            break;
-          }
-        }
-      }
+    const currWeekSun = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() - now.getDay()
+    );
+    currWeekSun.setHours(0, 0, 0, 0);
+    const currKey = toLocalDateStr(currWeekSun);
+
+    let d = new Date(currWeekSun);
+    if (!weekSet.has(currKey)) {
+      d.setDate(d.getDate() - 7);
+    }
+    while (weekSet.has(toLocalDateStr(d))) {
+      currentWeekStreak++;
+      d.setDate(d.getDate() - 7);
     }
   }
 
@@ -256,31 +246,38 @@ export function StatsCards({
 
   // Longest week streak - iterate all weeks from earliest to latest
   let longestWeekStreak = 0;
-  {
-    // Get all activity dates, find range, check each week
-    if (activities.length > 0) {
-      const earliest = new Date(
-        Math.min(
-          ...activities.map((a) => new Date(a.start_date_local).getTime())
-        )
-      );
-      const latest = new Date(
-        Math.max(
-          ...activities.map((a) => new Date(a.start_date_local).getTime())
-        )
-      );
-      let streak = 0;
-      let d = new Date(earliest);
-      while (d <= latest) {
-        const key = `${d.getFullYear()}-${getWeekNumber(d)}`;
-        if (weekSet.has(key)) {
-          streak++;
-          longestWeekStreak = Math.max(longestWeekStreak, streak);
-        } else {
-          streak = 0;
-        }
-        d = new Date(d.getTime() + 7 * 86400000);
+  if (activities.length > 0) {
+    const timestamps = activities.map((a) =>
+      new Date(a.start_date_local).getTime()
+    );
+    const earliest = new Date(Math.min(...timestamps));
+    const latest = new Date(Math.max(...timestamps));
+
+    const earliestSun = new Date(
+      earliest.getFullYear(),
+      earliest.getMonth(),
+      earliest.getDate() - earliest.getDay()
+    );
+    earliestSun.setHours(0, 0, 0, 0);
+
+    const latestSun = new Date(
+      latest.getFullYear(),
+      latest.getMonth(),
+      latest.getDate() - latest.getDay()
+    );
+    latestSun.setHours(0, 0, 0, 0);
+
+    let streak = 0;
+    const d = new Date(earliestSun);
+    while (d <= latestSun) {
+      const key = toLocalDateStr(d);
+      if (weekSet.has(key)) {
+        streak++;
+        longestWeekStreak = Math.max(longestWeekStreak, streak);
+      } else {
+        streak = 0;
       }
+      d.setDate(d.getDate() + 7);
     }
   }
 
@@ -523,14 +520,19 @@ export function StatsCards({
           </p>
         </div>
 
-        {/* Week days visual */}
+        {/* Week days visual — Sunday to Saturday */}
         {(() => {
-          const todayIdx = (now.getDay() + 6) % 7; // Mon=0 … Sun=6
-          const weekStart = new Date(now.getTime() - todayIdx * 86400000);
+          const todayIdx = now.getDay(); // Sun=0 … Sat=6
+          const weekStart = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate() - todayIdx
+          );
+          weekStart.setHours(0, 0, 0, 0);
           const weekLabels =
             locale === 'zh'
-              ? ['一', '二', '三', '四', '五', '六', '日']
-              : ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+              ? ['日', '一', '二', '三', '四', '五', '六']
+              : ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
           function dayColor(acts: Activity[]): string {
             if (acts.length === 0) return '';
@@ -541,12 +543,17 @@ export function StatsCards({
           }
 
           const weekDays = Array.from({ length: 7 }, (_, i) => {
-            const date = new Date(weekStart.getTime() + i * 86400000);
+            const date = new Date(
+              weekStart.getFullYear(),
+              weekStart.getMonth(),
+              weekStart.getDate() + i
+            );
             const key = toLocalDateStr(date);
             const dayActs = activities.filter(
               (a) => a.start_date_local.slice(0, 10) === key
             );
             return {
+              date,
               day: date.getDate(),
               hasActivity: dayActs.length > 0,
               isToday: i === todayIdx,
@@ -574,8 +581,7 @@ export function StatsCards({
               </div>
               <div className="flex flex-1 items-center gap-1.5">
                 {weekDays.map((wd, i) => {
-                  const isPast =
-                    new Date(weekStart.getTime() + i * 86400000) <= now;
+                  const isPast = wd.date <= now;
                   const color = dayColor(wd.acts);
                   return (
                     <div

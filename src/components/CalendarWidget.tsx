@@ -12,15 +12,14 @@ export function CalendarWidget({
   activities,
   onSelectActivity,
 }: CalendarWidgetProps) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const now = new Date();
   const [viewYear, setViewYear] = useState(now.getFullYear());
   const [viewMonth, setViewMonth] = useState(now.getMonth());
   const [hoveredDay, setHoveredDay] = useState<number | null>(null);
 
   const { days, monthDistance, monthCount } = useMemo(() => {
-    const firstDaySun = new Date(viewYear, viewMonth, 1).getDay(); // 0=Sun
-    const firstDay = (firstDaySun + 6) % 7; // convert to Mon=0
+    const firstDay = new Date(viewYear, viewMonth, 1).getDay(); // 0=Sun
     const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
 
     const dayActivities = new Map<number, Activity[]>();
@@ -78,7 +77,10 @@ export function CalendarWidget({
     return 38;
   };
 
-  const dayNames = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  const dayNames =
+    locale === 'zh'
+      ? ['日', '一', '二', '三', '四', '五', '六']
+      : ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
   const monthStr = `${String(viewMonth + 1).padStart(2, '0')}/${viewYear}`;
 
   return (
