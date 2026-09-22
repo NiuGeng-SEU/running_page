@@ -1,4 +1,6 @@
 import datetime
+import json
+import os
 import random
 import string
 
@@ -17,6 +19,22 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 Base = declarative_base()
+
+EXISTING_LOCATIONS = {}
+_json_path = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+    "src",
+    "static",
+    "activities.json",
+)
+if os.path.exists(_json_path):
+    try:
+        with open(_json_path, "r", encoding="utf-8") as _f:
+            for _item in json.load(_f):
+                if _item.get("run_id") and _item.get("location_country"):
+                    EXISTING_LOCATIONS[str(_item["run_id"])] = _item["location_country"]
+    except Exception:
+        pass
 
 
 # random user name 8 letters
@@ -105,28 +123,21 @@ def update_or_create_activity(session, run_activity):
         if not activity:
             start_point = run_activity.start_latlng
             location_country = getattr(run_activity, "location_country", "")
+            if not location_country and str(run_activity.id) in EXISTING_LOCATIONS:
+                location_country = EXISTING_LOCATIONS[str(run_activity.id)]
+
             # or China for #176 to fix
-            if not location_country and start_point or location_country == "China":
+            if not location_country and (start_point or location_country == "China"):
                 try:
                     location_country = str(
                         g.reverse(
                             f"{start_point.lat}, {start_point.lon}",
                             language="zh-CN",  # type: ignore
-                            timeout=15,
+                            timeout=3,
                         )
                     )
-                # limit (only for the first time)
                 except Exception:
-                    try:
-                        location_country = str(
-                            g.reverse(
-                                f"{start_point.lat}, {start_point.lon}",
-                                language="zh-CN",  # type: ignore
-                                timeout=15,
-                            )
-                        )
-                    except Exception:
-                        pass
+                    pass
 
             activity = Activity(
                 run_id=run_activity.id,

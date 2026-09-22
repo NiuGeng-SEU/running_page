@@ -31,7 +31,7 @@ class IntervalsICU:
             f"{BASE_URL}/athlete/{self.athlete_id}/activities"
             f"?oldest={oldest}&newest={newest}"
         )
-        response = self.session.get(url)
+        response = self.session.get(url, timeout=30)
         response.raise_for_status()
         return response.json()
 
@@ -42,7 +42,7 @@ class IntervalsICU:
 
         try:
             os.makedirs(output_folder, exist_ok=True)
-            response = self.session.get(url)
+            response = self.session.get(url, timeout=30)
             response.raise_for_status()
             content = response.content
             # Decompress only if gzip-compressed (magic bytes: 1f 8b)
