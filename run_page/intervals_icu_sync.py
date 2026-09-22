@@ -41,6 +41,7 @@ class IntervalsICU:
         output_path = os.path.join(output_folder, f"{numeric_id}.{file_type}")
 
         try:
+            os.makedirs(output_folder, exist_ok=True)
             response = self.session.get(url)
             response.raise_for_status()
             content = response.content
@@ -57,6 +58,8 @@ class IntervalsICU:
 
 
 def get_downloaded_ids(folder):
+    if not os.path.exists(folder):
+        return []
     return [i.split(".")[0] for i in os.listdir(folder) if not i.startswith(".")]
 
 

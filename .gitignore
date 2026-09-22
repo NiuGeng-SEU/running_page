@@ -2,6 +2,7 @@
 .yarn
 .cache
 *.pyc
+__pycache__/
 node_modules
 yarn-error.log
 
@@ -14,6 +15,7 @@ _posts/
 _site/
 
 .mypy_cache
+.ruff_cache/
 
 /.vscode
 .idea
@@ -26,3 +28,12 @@ route.png
 route.svg
 
 .env
+
+# Data and sync outputs
+run_page/data.db
+GPX_OUT/
+FIT_OUT/
+TCX_OUT/
+PNG_OUT/
+Workouts/
+activities/

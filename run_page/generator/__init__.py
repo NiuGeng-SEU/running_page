@@ -5,7 +5,11 @@ import sys
 
 import arrow
 import polyline as polyline_codec
-import stravalib
+
+try:
+    import stravalib
+except ImportError:
+    stravalib = None
 from gpxtrackposter import track_loader
 from sqlalchemy import func
 
@@ -123,7 +127,7 @@ def _build_route_for_distance(ref_coords, target_m):
 
 class Generator:
     def __init__(self, db_path):
-        self.client = stravalib.Client()
+        self.client = stravalib.Client() if stravalib else None
         self.session = init_db(db_path)
 
         self.client_id = ""
