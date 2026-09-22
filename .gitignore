@@ -29,8 +29,7 @@ route.svg
 
 .env
 
-# Data and sync outputs
-run_page/data.db
+# Data and sync outputs (raw track downloads remain untracked)
 GPX_OUT/
 FIT_OUT/
 TCX_OUT/

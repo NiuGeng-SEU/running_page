@@ -1,9 +1,10 @@
 import argparse
 import gzip
+import json
 import os
 import time
 import xml.etree.ElementTree as ET
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import eviltransform
 import gpxpy
@@ -151,6 +152,32 @@ def correct_file_gcj02(file_path, file_type):
         correct_fit_gcj02(file_path)
 
 
+def get_incremental_start_date(json_file, buffer_days=14):
+    """Detect start date for incremental sync from the newest activity in json_file."""
+    if not os.path.exists(json_file):
+        return "2015-01-01"
+    try:
+        with open(json_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if not data:
+            return "2015-01-01"
+        dates = [
+            a.get("start_date_local") or a.get("start_date")
+            for a in data
+            if a.get("start_date_local") or a.get("start_date")
+        ]
+        if not dates:
+            return "2015-01-01"
+        dates.sort()
+        latest_date_str = str(dates[-1])[:10]
+        latest_dt = datetime.strptime(latest_date_str, "%Y-%m-%d")
+        start_dt = latest_dt - timedelta(days=buffer_days)
+        return start_dt.strftime("%Y-%m-%d")
+    except Exception as e:
+        print(f"Warning: could not detect latest date from {json_file}: {e}")
+        return "2015-01-01"
+
+
 def run():
     parser = argparse.ArgumentParser(
         description="Sync running activities from Intervals.icu"
@@ -159,8 +186,8 @@ def run():
     parser.add_argument("api_key", help="Intervals.icu API key")
     parser.add_argument(
         "--start-date",
-        default="2015-01-01",
-        help="Oldest date to sync (YYYY-MM-DD, default: 2015-01-01)",
+        default=None,
+        help="Oldest date to sync (YYYY-MM-DD). If omitted, auto-detects latest run and syncs last 14 days",
     )
     parser.add_argument(
         "--all",
@@ -176,8 +203,15 @@ def run():
     options = parser.parse_args()
 
     today = datetime.now().strftime("%Y-%m-%d")
+    start_date = options.start_date
+    if not start_date:
+        start_date = get_incremental_start_date(JSON_FILE, buffer_days=14)
+        print(f"Incremental sync mode: syncing activities from {start_date} to {today}")
+    else:
+        print(f"Manual sync mode: syncing activities from {start_date} to {today}")
+
     client = IntervalsICU(options.athlete_id, options.api_key)
-    activities = client.get_activities(oldest=options.start_date, newest=today)
+    activities = client.get_activities(oldest=start_date, newest=today)
 
     if not options.sync_all:
         activities = [

@@ -201,6 +201,58 @@ def add_missing_columns(engine, model):
                 )
 
 
+def _parse_timedelta(s):
+    if not s or s == "None":
+        return datetime.timedelta()
+    parts = str(s).split(":")
+    try:
+        if len(parts) == 3:
+            return datetime.timedelta(
+                hours=int(parts[0]), minutes=int(parts[1]), seconds=float(parts[2])
+            )
+        elif len(parts) == 2:
+            return datetime.timedelta(minutes=int(parts[0]), seconds=float(parts[1]))
+    except Exception:
+        pass
+    return datetime.timedelta()
+
+
+def _seed_db_from_json(session, json_path):
+    if not os.path.exists(json_path):
+        return
+    try:
+        count = session.query(Activity).count()
+        if count > 0:
+            return
+        with open(json_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        for item in data:
+            if not item.get("run_id"):
+                continue
+            m = _parse_timedelta(item.get("moving_time"))
+            e = _parse_timedelta(item.get("elapsed_time")) or m
+            act = Activity(
+                run_id=item["run_id"],
+                name=item.get("name", ""),
+                distance=float(item.get("distance", 0)),
+                moving_time=m,
+                elapsed_time=e,
+                type=item.get("type", "Run"),
+                subtype=item.get("subtype", ""),
+                start_date=item.get("start_date", ""),
+                start_date_local=item.get("start_date_local", ""),
+                location_country=item.get("location_country", ""),
+                summary_polyline=item.get("summary_polyline", ""),
+                average_heartrate=item.get("average_heartrate"),
+                average_speed=float(item.get("average_speed", 0)),
+                elevation_gain=float(item.get("elevation_gain", 0)),
+            )
+            session.add(act)
+        session.commit()
+    except Exception as e:
+        print(f"Warning: Failed to seed db from {json_path}: {e}")
+
+
 def init_db(db_path):
     engine = create_engine(
         f"sqlite:///{db_path}", connect_args={"check_same_thread": False}
@@ -212,6 +264,7 @@ def init_db(db_path):
 
     sm = sessionmaker(bind=engine)
     session = sm()
+    _seed_db_from_json(session, _json_path)
     # apply the changes
     session.commit()
     return session
