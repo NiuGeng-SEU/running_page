@@ -187,10 +187,19 @@ class Generator:
             sys.stdout.flush()
         self.session.commit()
 
-    def sync_from_data_dir(self, data_dir, file_suffix="gpx", activity_title_dict={}):
+    def sync_from_data_dir(
+        self,
+        data_dir,
+        file_suffix="gpx",
+        activity_title_dict={},
+        activity_start_date_local_dict={},
+    ):
         loader = track_loader.TrackLoader()
         tracks = loader.load_tracks(
-            data_dir, file_suffix=file_suffix, activity_title_dict=activity_title_dict
+            data_dir,
+            file_suffix=file_suffix,
+            activity_title_dict=activity_title_dict,
+            activity_start_date_local_dict=activity_start_date_local_dict,
         )
         print(f"load {len(tracks)} tracks")
         if not tracks:
@@ -265,7 +274,7 @@ class Generator:
 
         activity_list = self._fix_indoor_locations(activity_list)
 
-        # Persist indoor subtype and virtual polyline back to DB so SVG generation can pick it up
+        # Persist indoor subtype, virtual polyline, and start_date_local back to DB so SVG generation can pick it up
         for a in activity_list:
             if a.get("subtype") == "indoor":
                 db_activity = self.session.query(Activity).get(a["run_id"])
@@ -275,6 +284,12 @@ class Generator:
                     poly = a.get("summary_polyline", "")
                     if poly and not db_activity.summary_polyline:
                         db_activity.summary_polyline = poly
+                    if (
+                        a.get("start_date_local")
+                        and db_activity.start_date_local
+                        != a["start_date_local"]
+                    ):
+                        db_activity.start_date_local = a["start_date_local"]
         self.session.commit()
 
         return activity_list
@@ -341,6 +356,7 @@ class Generator:
         last_outdoor_coords = None
         last_outdoor_location = None
         indoor_count = 0
+        fixed_tz_count = 0
         for a, is_indoor, coords in classified:
             if not is_indoor:
                 if coords is not None:
@@ -358,12 +374,71 @@ class Generator:
                     a["subtype"] = "indoor"
                     indoor_count += 1
 
+                # Correct start_date_local if indoor activity used wrong default timezone
+                target_tz_name = None
+                if last_outdoor_coords and len(last_outdoor_coords) > 0:
+                    try:
+                        from tzfpy import get_tz
+
+                        target_tz_name = get_tz(
+                            lng=last_outdoor_coords[0][1],
+                            lat=last_outdoor_coords[0][0],
+                        )
+                    except Exception:
+                        pass
+                if not target_tz_name:
+                    target_tz_name = (
+                        os.getenv("TIMEZONE")
+                        or os.getenv("BASE_TIMEZONE")
+                        or "America/New_York"
+                    )
+                if target_tz_name and a.get("start_date"):
+                    try:
+                        import pytz
+
+                        utc_dt = datetime.datetime.strptime(
+                            a["start_date"], "%Y-%m-%d %H:%M:%S"
+                        ).replace(tzinfo=datetime.timezone.utc)
+                        local_dt = utc_dt.astimezone(pytz.timezone(target_tz_name))
+                        correct_local = local_dt.strftime("%Y-%m-%d %H:%M:%S")
+                        if a.get("start_date_local") != correct_local:
+                            a["start_date_local"] = correct_local
+                            fixed_tz_count += 1
+                    except Exception as e:
+                        print(f"Error correcting start_date_local: {e}")
+
         if indoor_count > 0:
             print(
                 f"\n  Fixed {indoor_count} indoor activities "
                 f"with route from nearest outdoor activity"
             )
+        if fixed_tz_count > 0:
+            print(
+                f"\n  Corrected {fixed_tz_count} indoor activities local timezone"
+            )
+            activity_list = Generator._recompute_streaks(activity_list)
 
+        return activity_list
+
+    @staticmethod
+    def _recompute_streaks(activity_list):
+        activity_list.sort(key=lambda a: a["start_date_local"])
+        streak = 0
+        last_date = None
+        for a in activity_list:
+            d = datetime.datetime.strptime(
+                a["start_date_local"], "%Y-%m-%d %H:%M:%S"
+            ).date()
+            if last_date is None:
+                streak = 1
+            elif d == last_date:
+                pass
+            elif d == last_date + datetime.timedelta(days=1):
+                streak += 1
+            else:
+                streak = 1
+            a["streak"] = streak
+            last_date = d
         return activity_list
 
     def get_old_tracks_ids(self):

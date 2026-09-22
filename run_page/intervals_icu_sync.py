@@ -184,6 +184,7 @@ def run():
     # Only activities with a declared file type and supported folder mapping
     candidates = []
     activity_title_dict = {}
+    activity_start_date_local_dict = {}
     for activity in activities:
         file_type = activity.get("file_type")
         if not file_type:
@@ -192,10 +193,14 @@ def run():
         if file_type not in FOLDER_DICT:
             continue
         candidates.append((activity, file_type))
-        # Build title dict keyed by numeric ID (matching downloaded filename)
+        # Build title and local date dicts keyed by numeric ID (matching downloaded filename)
         numeric_id = str(activity["id"]).lstrip("i")
         if activity.get("name"):
             activity_title_dict[numeric_id] = activity["name"]
+        if activity.get("start_date_local"):
+            activity_start_date_local_dict[numeric_id] = activity[
+                "start_date_local"
+            ]
 
     downloaded_count = 0
     used_file_types = set()
@@ -238,6 +243,7 @@ def run():
             JSON_FILE,
             file_suffix=file_type,
             activity_title_dict=activity_title_dict,
+            activity_start_date_local_dict=activity_start_date_local_dict,
         )
 
     print(f"Done. Downloaded {downloaded_count} new activities.")

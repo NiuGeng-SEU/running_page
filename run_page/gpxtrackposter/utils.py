@@ -7,6 +7,7 @@
 
 import locale
 import math
+import os
 from datetime import datetime
 from typing import List, Optional, Tuple
 
@@ -121,7 +122,18 @@ def format_float(f):
 
 def parse_datetime_to_local(start_time, end_time, point):
     if not point:
-        timezone = "Asia/Shanghai"
+        try:
+            from config import BASE_TIMEZONE
+
+            default_tz = BASE_TIMEZONE
+        except ImportError:
+            default_tz = "America/New_York"
+        timezone = (
+            os.getenv("TIMEZONE")
+            or os.getenv("BASE_TIMEZONE")
+            or default_tz
+            or "America/New_York"
+        )
     else:
         # just parse the start time, because start/end maybe different
         offset = start_time.utcoffset()

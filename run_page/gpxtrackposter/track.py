@@ -196,6 +196,10 @@ class Track:
                 print(f"Error getting start point: {e}")
                 pass
             self.polyline_str = polyline.encode(polyline_container)
+        else:
+            self.start_time_local, self.end_time_local = parse_datetime_to_local(
+                self.start_time, self.end_time, None
+            )
         self.elevation_gain = tcx.ascent
         self.moving_dict = {
             "distance": self.length,
