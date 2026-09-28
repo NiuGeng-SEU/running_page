@@ -80,7 +80,7 @@ Data is automatically synchronized using GitHub Actions. The primary data source
    - `INTERVALS_ICU_ATHLETE_ID`
    - `INTERVALS_ICU_API_KEY`
    - `MAPBOX_TOKEN`
-3. The workflow `.github/workflows/run_data_sync.yml` automatically triggers daily at midnight UTC, or can be run manually via the **Run workflow** button.
+3. The workflow `.github/workflows/run_data_sync.yml` automatically triggers daily at 21:30 UTC (5:30 PM New York time), or can be run manually via the **Run workflow** button.
 
 #### Local Sync:
 ```bash

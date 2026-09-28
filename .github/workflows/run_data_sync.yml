@@ -3,7 +3,8 @@ name: Run Data Sync
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 0 * * *'
+    # 每天纽约时间下午 17:30 (5:30 PM EDT / UTC 21:30) 自动执行
+    - cron: '30 21 * * *'
   push:
     branches:
       - master
