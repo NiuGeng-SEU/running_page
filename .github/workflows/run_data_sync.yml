@@ -10,6 +10,7 @@ on:
       - master
     paths:
       - run_page/intervals_icu_sync.py
+      - run_page/export_intervals_full.py
       - run_page/generator/**
       - run_page/gpxtrackposter/**
       - requirements.txt
@@ -71,13 +72,14 @@ jobs:
       - name: Run sync Intervals.icu script
         run: |
           python run_page/intervals_icu_sync.py ${{ secrets.INTERVALS_ICU_ATHLETE_ID }} ${{ secrets.INTERVALS_ICU_API_KEY }}
+          python run_page/export_intervals_full.py ${{ secrets.INTERVALS_ICU_ATHLETE_ID }} ${{ secrets.INTERVALS_ICU_API_KEY }}
 
       - name: Push new runs
         run: |
           git config --local user.email 'action@github.com'
           git config --local user.name 'GitHub Action'
-          git add src/static/activities.json run_page/data.db || true
-          git commit -m 'chore: update activities data [skip ci]' || echo 'nothing to commit'
+          git add src/static/activities.json src/static/intervals_detail.json run_page/data.db || true
+          git commit -m 'chore: update activities and intervals data [skip ci]' || echo 'nothing to commit'
           git push || echo 'nothing to push'
 
       - name: Set Output
