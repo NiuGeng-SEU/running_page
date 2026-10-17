@@ -35,7 +35,7 @@ def main():
 
     # 2. Detailed view for recent activities (e.g. today & yesterday)
     detailed_activities = []
-    for act in activities[-10:]:
+    for act in activities[:10]:
         act_id = act.get("id")
         try:
             d_res = session.get(f"{base_url}/activity/{act_id}", timeout=30)
